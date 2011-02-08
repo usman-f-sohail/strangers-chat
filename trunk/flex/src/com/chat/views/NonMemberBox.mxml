@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Panel 
+	xmlns:fx="http://ns.adobe.com/mxml/2009"	
+	xmlns:mx="library://ns.adobe.com/flex/mx"
+	xmlns:s="library://ns.adobe.com/flex/spark"
+	autoLayout="true" creationComplete="initVars()" 
+	title="Your Information" dropShadowVisible="false" borderColor="#CCCCCC">
+	<fx:Script>
+		<![CDATA[
+			import com.chat.models.ChatUser;
+			import com.chat.utils.ChatConstants;
+			import mx.core.Application;
+			import com.chat.models.SearchCriteria;
+			import com.chat.models.Sex;
+			
+			import spark.components.Application;
+			import mx.core.FlexGlobals;						
+			[Bindable]
+			public var chatUser:ChatUser = null;
+			
+			private function initVars():void {
+				chatUser = FlexGlobals.topLevelApplication.chatUser;
+			}
+			
+			private function onSexChange(event:Event):void {
+				chatUser.sex = sexBox.selectedItem.item;
+			}
+			
+			private function onAgeChange(event:Event):void {
+				if(age.text.length > 0) {
+					chatUser.age = parseFloat(age.text);
+				} else {
+					
+				}
+			}
+			
+			private function onPlaceChange(event:Event):void {
+				chatUser.place = placeBox.selectedItem;
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<mx:Form>
+		<mx:FormItem label="Sex : ">
+			<s:ComboBox id="sexBox" selectedIndex="0" change="onSexChange(event)">
+				<s:ArrayCollection id="sexList">
+					<fx:Object item="{Sex.FEMALE.value}" label="{Sex.FEMALE.value}" />				
+					<fx:Object item="{Sex.MALE.value}" label="{Sex.MALE.value}" />
+				</s:ArrayCollection>
+			</s:ComboBox>
+		</mx:FormItem>
+		
+		<mx:FormItem label="Age : " required="true">
+			<s:TextInput id="age" text="{chatUser.age}" change="onAgeChange(event)" restrict="0-9" maxChars="2" width="30"/>
+		</mx:FormItem>
+		
+		<mx:FormItem label="Place : ">
+			<s:ComboBox id="placeBox" selectedIndex="0" change="onPlaceChange(event)">
+				<s:ArrayCollection id="placeList">
+					<fx:String>All</fx:String>
+				</s:ArrayCollection>
+			</s:ComboBox>
+		</mx:FormItem>
+	</mx:Form>
+</s:Panel>

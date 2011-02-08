@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Application
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+	xmlns:mx="library://ns.adobe.com/flex/mx"
+	xmlns:s="library://ns.adobe.com/flex/spark"
+	xmlns:component="com.chat.component.*"	
+	xmlns:model="com.chat.models.*" 
+	xmlns:view="com.chat.views.*"
+	name="memberChat"
+	preinitialize="initVars()"
+	initialize="initChat()"
+	creationComplete="creationComplete()">
+	<fx:Script>
+		<![CDATA[
+			import com.chat.models.ChatUser;
+			import com.chat.models.SearchCriteria;
+			import com.chat.models.Conversation;
+			import com.chat.utils.ChatConstants;
+			import com.chat.utils.ChatEvent;
+			import com.chat.views.ConnectingPopup;
+			
+			import com.chat.dao.PublicConnection;
+			import com.chat.dao.VideoConnection;
+			import com.chat.dao.AudioConnection;
+			
+			import mx.events.FlexEvent;
+			import mx.events.SliderEvent;
+			import mx.core.FlexGlobals;
+			import mx.utils.URLUtil;
+			import mx.managers.PopUpManager;
+			import mx.logging.Log;
+			import mx.logging.ILogger;
+			import mx.logging.LogEventLevel;
+			import mx.logging.targets.TraceTarget;		
+			
+			import spark.components.TitleWindow;	
+			
+			private static var LOG:ILogger = Log.getLogger('main');
+			[Bindable]
+			public var hostname:String;
+			[Bindable]
+			public var rtmpPort:Number;
+			[Bindable]
+			public var issecure:Boolean;
+			
+			[Bindable]
+			public var criteria:SearchCriteria = null;
+			
+			[Bindable]
+			public var chatUser:ChatUser = null;
+			
+			[Bindable]
+			public var conversation:Conversation = null;
+			
+			[Bindable]
+			public var publicConn:PublicConnection;
+			
+			[Bindable]
+			public var videoConn:VideoConnection;
+			
+			[Bindable]
+			public var audioConn:AudioConnection;
+			
+			public var mainResponder:Responder;
+			
+			private function initConnection():void {
+				publicConn = new PublicConnection();
+				publicConn.createConnection();
+				publicConn.addEventListener(ChatEvent.PUBLIC_CONN_SUCCESS,initMediaConnection);
+			}
+			
+			private function initMediaConnection(event:ChatEvent):void {
+				trace(event.type);
+				if(event.type == ChatEvent.PUBLIC_CONN_SUCCESS) {
+					audioConn = new AudioConnection();
+					audioConn.createConnection();
+					audioConn.addEventListener(ChatEvent.AUDIO_CONN_SUCCESS,initMediaConnection);
+					
+					videoConn = new VideoConnection();
+					videoConn.createConnection();
+					videoConn.addEventListener(ChatEvent.VIDEO_CONN_SUCCESS,initMediaConnection);
+				}
+			}
+			
+			private function initVars():void {
+				chatUser = new ChatUser(ChatConstants.GUEST_ID);
+				criteria = new SearchCriteria();
+				conversation = new Conversation(chatUser.id);
+				conversation.partnerUser = new ChatUser(ChatConstants.GUEST_ID);
+				mainResponder = new Responder(onRemoteCallSuccess, onRemoteCallFail);			
+			}
+			
+			private function initChat():void {
+				initLogging();
+			}
+			
+			private function creationComplete():void {
+				getURLDetails();
+				initConnection();
+			}
+			
+			private function onScanClick(event:FlexEvent):void {
+				LOG.debug("scan button clicked");
+				audioConn.addEventListener(ChatEvent.VIDEO_AUDIO_PUBLISHED,initScanPartner);
+				videoConn.addEventListener(ChatEvent.VIDEO_AUDIO_PUBLISHED,initScanPartner);				
+				videoConn.addEventListener(ChatEvent.VIDEO_PUBLISHED,initScanPartner);
+				publish();
+			}
+			
+			private function onRemoteCallSuccess(object:Object):void {
+				trace("RPC call success "+object.toString());
+			}
+			
+			private function onRemoteCallFail(object:Object):void {
+				trace("RPC call failed "+object.toString());
+			}			
+			
+			private function initScanPartner(event:ChatEvent=null):void {
+				LOG.debug("intialize scan partner ");
+				audioConn.removeEventListener(ChatEvent.VIDEO_AUDIO_PUBLISHED,initScanPartner);
+				videoConn.removeEventListener(ChatEvent.VIDEO_AUDIO_PUBLISHED,initScanPartner);
+				videoConn.removeEventListener(ChatEvent.VIDEO_PUBLISHED,initScanPartner);				
+				if(event != null && (event.type == ChatEvent.VIDEO_AUDIO_PUBLISHED || event.type == ChatEvent.VIDEO_PUBLISHED)) {
+					if(!chatUser.allowScan) {
+						chatUser.allowScan = true;
+						publicConn.call("scanRandomPartner", mainResponder, criteria, chatUser);
+					}
+				} else if(event == null) {
+						chatUser.allowScan = true;
+						publicConn.call("scanRandomPartner", mainResponder, criteria, chatUser);				
+				}
+			}
+			
+			private function onStopClick():void {
+				chatUser.allowScan = false;
+				publicConn.call("stopRandomScan", mainResponder, chatUser);
+			}
+			
+			public function broadcastChatMessage(message:String):void {
+				LOG.debug("broadcast a message");
+				publicConn.call("broadcastChatMessage", mainResponder, chatUser.id , message);
+			}			
+			
+			public function publish():void {
+				if(!chatUser.video) {
+					videoConn.publishYourVideo();
+				} else {
+					initScanPartner(null);
+				}
+				if(!chatUser.audio) {
+					audioConn.publishYourAudio();
+				}
+			}
+			
+			public function stopPlay():void {
+				//videoConn.stopPartnerVideo();
+				//audioConn.stopPartnerAudio();
+			}
+			
+			public function changeYourVolume(event:SliderEvent):void {
+				var value:int = event.target.value;
+				var volume:Number = 0;
+				if(value > 0){
+					volume = value / 100;
+				}
+				audioConn.microphone.gain = volume;
+				LOG.debug("The Microphone volume is "+volume);
+			}
+			
+			public function changePartnerVolume(event:SliderEvent):void {
+				var value:int = event.target.value;
+				var volume:Number = 0;
+				if(value > 0){
+					volume = value / 100;
+				}
+				if(audioConn.partnerTransform != null && audioConn.partnerAudioStream != null) {
+					audioConn.partnerTransform.volume = volume;
+					audioConn.partnerAudioStream.soundTransform = audioConn.partnerTransform;
+				}
+				LOG.debug("The partner volume is "+volume);		
+			}			
+				
+			private function getURLDetails():void {
+				var url:String = this.url;
+				var flashvars:Object = this.parameters;
+				var red5server:String = flashvars["red5server"];
+				var secure:String = flashvars["secure"];
+				var red5port:String = flashvars["red5port"];
+				
+				var fullURL:String = URLUtil.getFullURL(url, url);
+				var port:int = URLUtil.getPort(url);
+				var protocol:String = URLUtil.getProtocol(url);
+				if(red5server == null) {
+					this.hostname = URLUtil.getServerName(url);
+				} else {
+					this.hostname = red5server;
+				}
+				if(secure == null) {
+					this.issecure = URLUtil.isHttpsURL(url);
+				} else {
+					this.issecure = secure as Boolean;
+				}
+				
+				if(red5port == null) {
+					this.rtmpPort = ChatConstants.RTMP_PORT;
+				} else {
+					this.rtmpPort = red5port as Number;
+				}
+			}
+			
+			private function initLogging():void {
+				// Create a target.
+				var logTarget:TraceTarget = new TraceTarget();
+				
+				// Log only messages for the following packages			
+				logTarget.filters=["com.chat.component.*","com.chat.dao.*","com.chat.models.*","com.chat.utils.*", "com.chat.views.*"];
+	
+				// Log all log levels.
+				logTarget.level = LogEventLevel.ALL;
+	
+				// Add date, time, category, and log level to the output.
+				logTarget.includeDate = true;
+				logTarget.includeTime = true;
+				logTarget.includeCategory = true;
+				logTarget.includeLevel = true;
+	
+				// Begin logging.
+				Log.addTarget(logTarget);
+			}
+		]]>
+	</fx:Script>
+    <s:SkinnableContainer id="applicationSkin" 
+        height="100%" width="100%" 
+        skinClass="com.chat.skin.ApplicationSkin">
+    </s:SkinnableContainer>	
+	<s:HGroup name="mainGroup" id="mainGroup" paddingLeft="5" paddingRight="5" paddingBottom="5" paddingTop="5">
+		<s:HGroup id="firstColumn">
+			<s:VGroup id="infoScanBox">
+				<view:NonMemberBox id="myInfoBox" name="myInfoBox" visible="{!chatUser.registeredUser}" />
+				<view:ScanCriteriaBox id="scanBox" name="scanBox"/>
+				<mx:LinkButton label="Change Background" color="blue" bottom="0"/>
+			</s:VGroup>
+		</s:HGroup>
+		
+		<s:HGroup id="secondColumn">
+			<s:VGroup id="videoChatBox">
+				<view:VideoBox id="videoBox" name="videoBox"/>
+				<s:HGroup width="{videoBox.width}" horizontalAlign="center">
+					<component:ChatButton buttonDown="onScanClick(event)" label="Scan" fontSize="14"/>
+					<component:ChatButton label="Stop" fontSize="14"/>				
+				</s:HGroup>
+				<view:ChatBox id="chatBox" name="chatBox" width="{videoBox.width}"/>
+				<s:HGroup id="userNameBox" name="userNameBox">
+					<s:Label text="User ID : " />
+					<s:Label text="{conversation.id}" />
+					<s:Label text="Partner ID : " />
+					<s:Label text="{conversation.partnerUser.id}" />				
+				</s:HGroup>				
+			</s:VGroup>
+		</s:HGroup>
+		<s:HGroup id="thirdColumn">
+			<s:VGroup id="friendListSearchBox">
+				<view:FriendRequestBox id="requestBox" visible="{chatUser.registeredUser}"/>
+			</s:VGroup>			
+		</s:HGroup>
+	</s:HGroup>
+</s:Application>

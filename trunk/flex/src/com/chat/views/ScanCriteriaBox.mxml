@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Panel 
+	xmlns:fx="http://ns.adobe.com/mxml/2009"
+	xmlns:mx="library://ns.adobe.com/flex/mx"
+	xmlns:s="library://ns.adobe.com/flex/spark"
+	xmlns:component="com.chat.component.*"
+	autoLayout="true" creationComplete="initVars()" 
+	title="Partner Option" dropShadowVisible="false" borderColor="#CCCCCC">
+	<fx:Script>
+		<![CDATA[
+			import com.chat.utils.ChatConstants;
+			import com.chat.models.SearchCriteria;
+			import com.chat.models.ChatUser;
+			import com.chat.models.Sex;
+			import spark.components.Application;
+			import mx.core.FlexGlobals;
+			import mx.events.FlexEvent;			
+
+			[Bindable]
+			private var criteria:SearchCriteria;
+			[Bindable]
+			private var chatUser:ChatUser;
+						
+			private function initVars():void {
+				criteria = FlexGlobals.topLevelApplication.criteria;
+				chatUser = FlexGlobals.topLevelApplication.chatUser;
+			}
+			
+			private function onSexChange(event:Event):void {
+				criteria.sex = sexBox.selectedItem.item;
+			}
+			
+			private function onStartAgeChange(event:Event):void {
+				if(startAge.text.length > 0) {
+					criteria.startAge = parseFloat(startAge.text);
+				} else {
+				}
+			}
+			
+			private function onEndAgeChange(event:Event):void {
+				if(endAge.text.length > 0) {
+					criteria.endAge = parseFloat(endAge.text);
+				}else {
+				}
+			}
+			
+			private function onPlaceChange(event:Event):void {
+				criteria.place = placeBox.selectedItem;
+			}
+			
+			/*private function onScanClick(event:FlexEvent):void {
+				FlexGlobals.topLevelApplication.publish();
+				chatUser.allowScan = true;
+			}*/
+		]]>
+	</fx:Script>
+	
+	<mx:Form>
+		<mx:FormItem label="Sex : ">
+			<s:ComboBox id="sexBox" selectedIndex="0" change="onSexChange(event)">
+				<s:ArrayCollection id="sexList">
+					<fx:Object item="{Sex.ALL.value}" label="{Sex.ALL.value}"/>
+					<fx:Object item="{Sex.MALE.value}" label="{Sex.MALE.value}"/>
+					<fx:Object item="{Sex.FEMALE.value}" label="{Sex.FEMALE.value}"/>
+				</s:ArrayCollection>
+			</s:ComboBox>
+		</mx:FormItem>
+		
+		<mx:FormItem label="Age : " required="true">
+			<s:HGroup>
+				<s:TextInput id="startAge" text="{criteria.startAge}" change="onStartAgeChange(event)" restrict="0-9" maxChars="2" width="30"/>
+				<mx:Text text="between" />
+				<s:TextInput id="endAge" text="{criteria.endAge}" change="onEndAgeChange(event)" restrict="0-9" maxChars="2" width="30"/>
+			</s:HGroup>
+		</mx:FormItem>
+		
+		<mx:FormItem label="Place : ">
+			<s:ComboBox id="placeBox" selectedIndex="0" change="onPlaceChange(event)">
+				<s:ArrayCollection id="placeList">
+					<fx:Object item="All" label="All" />
+				</s:ArrayCollection>
+			</s:ComboBox>
+		</mx:FormItem>
+		
+		<!--<s:HGroup>
+			<component:ChatButton buttonDown="onScanClick(event)" label="Scan" fontSize="14"/>
+			<component:ChatButton label="Stop" fontSize="14"/>				
+		</s:HGroup> -->
+	</mx:Form>
+</s:Panel>

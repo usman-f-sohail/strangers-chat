@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="Red5Project" default="build" basedir=".">
+
+	<!-- Load Environment specific properties from properties file -->
+	<property file="build.properties" />
+	<property environment="env" />
+	<property name="FLEX_HOME" value="${env.FLEX_HOME}" />
+	<property name="JAVA_HOME" value="${env.JAVA_HOME}" />
+	<property name="RED5_HOME" value="${env.RED5_HOME}" />
+
+	<!-- Load the flex tasks for compiling the actionScript code -->
+	<taskdef resource="flexTasks.tasks" classpath="${FLEX_HOME}/${FLEX.TASK.DIR}" />
+
+	<path id="project.classpath">
+		<fileset dir="${RED5_HOME}/lib"/>
+		<!-- project specific libs -->
+		<fileset dir="${java.lib.dir}"/>
+	</path>
+
+	 <!-- Init with echoing some info to the console -->
+	<target name="init" description="Initializes the build">
+        <condition property="java.target_version" value="1.6">
+            <not>
+                <isset property="java.target_version"/>
+            </not>
+        </condition>
+        <tstamp prefix="build">
+            <format property="TODAY" pattern="dd-MMMM-yyyy" locale="en"/>
+        </tstamp>
+		<echo message="============================================="/>
+		<echo message="${project.name}-${project.version} [${build.TODAY}]"/>
+		<echo message="Copyright (c) ${project.year} ${project.owner}"/>
+		<echo message="OS : ${os.name}" />
+		<echo message="Author: ${author}" />
+		<echo message="=============================================="/>
+	</target>
+
+	<!-- Prepare directories for build -->
+    <target name="prepare" description="Setup the directories for building">
+		<mkdir dir="${flex.build.dir}"/>
+		<mkdir dir="${java.build.dir}"/>
+		<mkdir dir="${dist.dir}"/>
+     </target>
+
+	<!-- Compile Main Application -->
+	<target name="compile" depends="init,prepare" description="Compiles related modules">
+		<mxmlc
+			file="${flex.main.class}"
+			output="${flex.swf.export}"
+	  		keep-generated-actionscript="false"
+	  		incremental="false"
+			optimize="true">
+				<load-config filename="${FLEX_HOME}/frameworks/flex-config.xml"/>
+				<source-path path-element="${FLEX_HOME}/frameworks"/>
+				<compiler.source-path path-element="${flex.src.dir}"/>
+				<compiler.include-libraries dir="${basedir}" append="true">
+					<include name="${flex.lib.dir}" />
+				</compiler.include-libraries>
+		</mxmlc>
+
+	     <javac sourcepath="" srcdir="${java.src.dir}" destdir="${java.build.dir}" classpathref="project.classpath"
+	             optimize="${build.optimize}" verbose="${build.verbose}" fork="${build.fork}" nowarn="${build.nowarn}"
+	             deprecation="${build.deprecation}" debug="true" compiler="modern"
+	             source="${java.target_version}" target="${java.target_version}" listfiles="false"/>
+
+	</target>
+
+	<!-- Clean output dirs -->
+	<target name="clean" description="clean all generated files">
+		<delete dir="${flex.build.dir}"/>
+		<delete dir="${java.build.dir}"/>
+		<delete dir="${dist.dir}"/>
+	</target>
+
+	<!-- Run all, default -->
+	<target name = "dist" depends="compile" description="setup the destination directory">
+		<copy todir="${dist.dir}/html">
+			<fileset dir="${flex.html.dir}" />
+			<fileset file="${flex.swf.export}" />
+		</copy>
+		<copy todir="${dist.dir}/WEB-INF">
+			<fileset dir="${java.dir}/WEB-INF" />
+		</copy>
+		<copy todir="${dist.dir}/WEB-INF/classes">
+			<fileset dir="${java.build.dir}" />
+		</copy>
+	</target>
+
+	<target name = "deploy" depends="dist" description="deploy the files into red5 server">
+			<copy todir="${RED5_HOME}/webapps/${application.name}/">
+				<fileset dir="${dist.dir}" />
+			</copy>
+	</target>
+
+	<target name="build"
+		depends="clean,compile,dist"
+		description="Complete build in efficient sequence"/>
+</project>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<component:ChatPopup xmlns:fx="http://ns.adobe.com/mxml/2009" 
+	xmlns:mx="library://ns.adobe.com/flex/mx"
+	xmlns:s="library://ns.adobe.com/flex/spark"
+	xmlns:component="com.chat.component.*" title="Error" name="errorPopup"
+	width="300" height="100" cornerRadius="7" dropShadowVisible="false"> 
+		<s:Label id="errorLabel" verticalCenter="0" horizontalCenter="0" fontSize="14" text="Error in this application... Try again..." />
+</component:ChatPopup>
