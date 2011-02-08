@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:HGroup 
+	xmlns:fx="http://ns.adobe.com/mxml/2009"
+	xmlns:mx="library://ns.adobe.com/flex/mx"
+	xmlns:s="library://ns.adobe.com/flex/spark"
+	xmlns:component="com.chat.component.*" creationComplete="onCreationComplete()">
+	<fx:Script>
+		<![CDATA[
+			import com.chat.utils.ChatConstants;
+			import com.chat.models.ChatUser;
+			import mx.core.FlexGlobals;
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			import mx.events.SliderEvent;
+			import mx.logging.ILogger;
+			import mx.logging.Log;			
+			import flash.media.Camera;
+			import flash.media.Microphone;
+			
+			private static var LOG:ILogger = Log.getLogger('com.chat.views.VideoBox');
+			[Bindable]
+			public var cameraArray:ArrayCollection = new ArrayCollection(Camera.names);
+			[Bindable]
+			public var micArray:ArrayCollection = new ArrayCollection(Microphone.names);
+			[Bindable]
+			private var chatUser:ChatUser = FlexGlobals.topLevelApplication.chatUser;
+			
+			private function showPartnerControlBox(event:MouseEvent):void {
+				partnerVideoController.visible = true;
+			}
+			
+			private function hidePartnerControlBox(event:MouseEvent):void {
+				partnerVideoController.visible = false;
+			}
+			
+			private function showYourControlBox(event:MouseEvent):void {
+				yourVideoController.visible = true;
+			}
+			
+			private function hideYourControlBox(event:MouseEvent):void {
+				yourVideoController.visible = false;
+			}
+			
+			private function onCreationComplete():void {
+			
+			}
+			
+			private function onPublishClick(event:FlexEvent):void {
+				FlexGlobals.topLevelApplication.publish();
+			}
+			
+			private function onPartnerSliderChange(event:SliderEvent=null):void {
+				FlexGlobals.topLevelApplication.changePartnerVolume(event);
+			}
+			
+			private function onYourSliderChange(event:SliderEvent=null):void {
+				FlexGlobals.topLevelApplication.changeYourVolume(event);
+			}			
+		]]>		
+	</fx:Script>
+	<fx:Declarations>
+		<s:Parallel id="showEffect">
+			<s:Fade id="fadeIn" alphaFrom="0.0" alphaTo="1.0" />
+		</s:Parallel>
+		<s:Parallel id="hideEffect">
+			<s:Fade id="fadeOut" alphaFrom="1.0" alphaTo="0.0" />		
+		</s:Parallel>				
+	</fx:Declarations>
+	
+	<s:Group id="yourVideoBox" rollOver="showYourControlBox(event)" rollOut="hideYourControlBox(event)">
+		<s:SkinnableContainer id="yourVideoSkin" 
+	        height="100%" width="100%" 
+	        skinClass="com.chat.skin.VideoDisplaySkin">
+	    </s:SkinnableContainer>		
+		<component:ChatVideoDisplay id="yourVideoDisplay" height="{ChatConstants.VIDEO_HEIGHT}" width="{ChatConstants.VIDEO_WIDTH}" />
+		<s:Group id="yourVideoController" width="{yourVideoBox.width}" height="{yourVideoBox.height}" showEffect="{showEffect}" hideEffect="{hideEffect}">
+			<s:Label text="You" color="black" top="5" left="5"/>
+			<component:ChatButton id="publishButton" label="Publish" width="100" height="30" 
+				x="{(yourVideoDisplay.width / 2 ) - (publishButton.width / 2)}" y="{(yourVideoDisplay.height / 2 ) - (publishButton.height / 2)}" 
+				buttonDown="onPublishClick(event)" enabled="{!chatUser.video}" fontSize="14" />
+			<s:VGroup bottom="5" left="5">
+				<s:Label text="Microphone : " fontWeight="bold" color="black"/>
+				<s:HSlider id="micSlider" toolTip="Microphone Volume" minimum="1" maximum="100" snapInterval="1" stepSize="1" value="50" />
+				<s:HGroup>
+					<s:VGroup>
+						<s:Label text="Video Devices : " fontWeight="bold" color="black" />
+						<s:ComboBox id="vidCombo" name="vidCombo" dataProvider="{cameraArray}" selectedIndex="0"/>
+					</s:VGroup>
+					<s:VGroup>
+						<s:Label text="Audio Devices : " fontWeight="bold" color="black" />
+						<s:ComboBox id="micCombo" name="micCombo" dataProvider="{micArray}" selectedIndex="0"/>
+					</s:VGroup>
+				</s:HGroup>	
+			</s:VGroup>			
+		</s:Group>
+	</s:Group>
+		
+	<s:Group id="partnerVideoBox" rollOver="showPartnerControlBox(event)" rollOut="hidePartnerControlBox(event)">
+		<s:SkinnableContainer id="partnerVideoSkin" 
+	        height="100%" width="100%" 
+	        skinClass="com.chat.skin.VideoDisplaySkin">
+	    </s:SkinnableContainer>
+		<component:ChatVideoDisplay id="partnerVideoDisplay" height="{ChatConstants.VIDEO_HEIGHT}" width="{ChatConstants.VIDEO_WIDTH}" />
+		<s:Group id="partnerVideoController" width="{partnerVideoBox.width}" height="{partnerVideoBox.height}" showEffect="{showEffect}" hideEffect="{hideEffect}">
+			<s:Label text="Partner" color="black" top="5" left="5"/>
+			<s:VGroup bottom="5" left="5">
+				<s:Label text="Speaker : " fontWeight="bold" color="black" />
+				<s:HSlider id="speakerSlider" change="onPartnerSliderChange()" toolTip="Partner Volume" minimum="1" maximum="100" snapInterval="1" stepSize="1" value="100" />
+			</s:VGroup>
+		</s:Group>
+	</s:Group>
+</s:HGroup>

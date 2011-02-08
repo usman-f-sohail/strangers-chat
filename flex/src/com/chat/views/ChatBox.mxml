@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:VGroup
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+	xmlns:mx="library://ns.adobe.com/flex/mx"
+	xmlns:s="library://ns.adobe.com/flex/spark" 
+	creationComplete="addHelpMessage()">
+	<fx:Script>
+		<![CDATA[
+			import mx.core.FlexGlobals;
+			import mx.utils.StringUtil;
+			import spark.components.Application;
+			import spark.utils.TextFlowUtil;
+			import flashx.textLayout.elements.TextFlow;
+			import flashx.textLayout.elements.ParagraphElement;
+			import flashx.textLayout.elements.SpanElement;
+			import com.chat.utils.ChatUtility;
+			import com.chat.models.ChatUser;
+			
+			[Bindable]
+			private var historyTextFlow:TextFlow = new TextFlow();
+			[Bindable]
+			private var chatUser:ChatUser = FlexGlobals.topLevelApplication.chatUser;
+			
+			/*This is for add Help message to the users*/
+			private function addHelpMessage():void {
+			
+				var p1:ParagraphElement = new ParagraphElement();
+				var p2:ParagraphElement = new ParagraphElement();
+				var p3:ParagraphElement = new ParagraphElement();
+				var span1:SpanElement = new SpanElement();
+				var span2:SpanElement = new SpanElement();
+				var span3:SpanElement = new SpanElement();
+				var span4:SpanElement = new SpanElement();
+				var span5:SpanElement = new SpanElement();
+				span1.color = "#0000FF";
+				span2.color = "#0000FF";
+				span3.color = "#0000FF";
+				span4.color = "#0000FF";
+				span5.color = "#0000FF";
+				span4.fontWeight = "bold";
+				
+				span1.text = ChatUtility.getCurrentTime() + "You are entering into chating application.";
+				span2.text = ChatUtility.getCurrentTime() + "Have a happy ride!";
+				span3.text = ChatUtility.getCurrentTime() + "Hit ";
+				span4.text = "Scan";
+				span5.text = " button to find a random partner.";
+				
+				p1.addChild(span1);
+				p2.addChild(span2);
+				p3.addChild(span3);
+				p3.addChild(span4);
+				p3.addChild(span5);
+				historyTextFlow.addChildAt(0,p1);
+				historyTextFlow.addChildAt(0,p2);
+				historyTextFlow.addChildAt(0,p3);
+			}
+			
+			private function addInfoMessage(msg:String):void {
+				var p:ParagraphElement = new ParagraphElement();
+				var span:SpanElement = new SpanElement();
+				span.color = "#0000FF";
+				span.text = ChatUtility.getCurrentTime() + msg;
+				p.addChild(span);				
+				historyTextFlow.addChildAt(0,p);
+			}
+			
+			private function sendMessage(event:Event):void {
+				var message:String = ChatUtility.stripHtmlTags(StringUtil.trim(chatInput.text));
+				if(message != null && message.length > 0) {
+					var p:ParagraphElement = new ParagraphElement();
+					var span:SpanElement = new SpanElement();
+					span.color = "#800080";
+					span.text = ChatUtility.getCurrentTime() + message;
+					p.addChild(span);
+					historyTextFlow.addChildAt(0,p);
+				}
+				chatInput.text = null;
+				FlexGlobals.topLevelApplication.broadcastChatMessage(message);
+			}
+			
+			public function receiveMessage(message:String):void {
+				var p:ParagraphElement = new ParagraphElement();
+				var span:SpanElement = new SpanElement();
+				span.color = "#5F5F5F";
+				span.text = ChatUtility.getCurrentTime() + message;
+				p.addChild(span);
+				historyTextFlow.addChildAt(0,p);			
+			}
+			
+		]]>
+	</fx:Script>
+	<s:TextInput id="chatInput" enabled="{chatUser.allowScan}" borderColor="#CCCCCC" width="{this.width}" maxChars="160" fontSize="14" x="0" y="0" enter="sendMessage(event)" />
+		
+	<s:TextArea id="chatHistory" textFlow="{historyTextFlow}" borderColor="#CCCCCC" width="{chatInput.width}" height="250" editable="false" fontSize="12" />
+		
+</s:VGroup>
